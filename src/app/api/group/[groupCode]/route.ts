@@ -8,5 +8,5 @@ export async function GET(
   const { groupCode } = await params;
   const group = await getGroupByCode(groupCode);
   if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ groupId: group.id, group });
+  return NextResponse.json({ groupId: group.id, group, sport: group.sport, clubName: group.clubName });
 }

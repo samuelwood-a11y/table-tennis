@@ -10,6 +10,9 @@ model Group {
   id          String   @id @default(cuid())
   name        String
   code        String   @unique
+  sport       String   @default("TABLE_TENNIS")
+  imageUrl    String?
+  clubName    String?
   createdAt   DateTime @default(now())
   adminEmail            String?
   previousCode          String?
@@ -27,8 +30,13 @@ model Player {
   id          String   @id @default(cuid())
   groupId     String
   name        String
+  nickname    String?
+  notes       String?
+  imageUrl    String?
   avatarColor String   @default("#6366f1")
   emoji       String?
+  isArchived  Boolean  @default(false)
+  archivedAt  DateTime?
   createdAt   DateTime @default(now())
 
   group             Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -111,6 +119,7 @@ model League {
   entryFee    Float?
   currency    String   @default("GBP")
   expectedPot Float?
+  isArchived  Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   group      Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -141,6 +150,7 @@ model Tournament {
   entryFee    Float?
   currency    String   @default("GBP")
   expectedPot Float?
+  isArchived  Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   group    Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)

@@ -10,10 +10,14 @@ export async function PATCH(
   const group = await getGroupByCode(groupCode);
   if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { adminEmail } = await req.json();
+  const { adminEmail, imageUrl, clubName } = await req.json();
   const updated = await prisma.group.update({
     where: { id: group.id },
-    data: { adminEmail: adminEmail?.trim().toLowerCase() || null },
+    data: {
+      ...(adminEmail !== undefined && { adminEmail: adminEmail?.trim().toLowerCase() || null }),
+      ...(imageUrl !== undefined && { imageUrl: imageUrl || null }),
+      ...(clubName !== undefined && { clubName: clubName?.trim() || null }),
+    },
   });
 
   return NextResponse.json({ ok: true, group: updated });

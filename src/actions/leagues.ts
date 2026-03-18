@@ -134,3 +134,20 @@ export async function deleteLeague(leagueId: string) {
   await prisma.league.delete({ where: { id: leagueId } });
   revalidatePath(`/g`);
 }
+
+export async function archiveLeague(leagueId: string, groupCode: string) {
+  await prisma.league.update({
+    where: { id: leagueId },
+    data: { isArchived: true },
+  });
+  revalidatePath(`/g/${groupCode}/leagues`);
+}
+
+export async function deleteLeagueIfEmpty(leagueId: string, groupCode: string) {
+  const hasResults = await prisma.match.count({
+    where: { leagueId, status: "COMPLETED" },
+  });
+  if (hasResults > 0) throw new Error("Cannot delete league with results. Use archive instead.");
+  await prisma.league.delete({ where: { id: leagueId } });
+  revalidatePath(`/g/${groupCode}/leagues`);
+}

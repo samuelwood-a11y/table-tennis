@@ -8,6 +8,7 @@ import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassTabs } from "@/components/ui/GlassTabs";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { createSinglesMatch, createDoublesMatch } from "@/actions/matches";
+import { getSportConfig } from "@/lib/sports";
 import type { Player } from "@prisma/client";
 
 type SetScore = { score1: number; score2: number };
@@ -21,7 +22,8 @@ export default function NewMatchPage({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [matchType, setMatchType] = useState<"SINGLES" | "DOUBLES">("SINGLES");
+  const [sport, setSport] = useState("TABLE_TENNIS");
+  const [matchType, setMatchType] = useState<string>("SINGLES");
   const [players, setPlayers] = useState<Player[]>([]);
   const [groupId, setGroupId] = useState("");
   const [player1, setPlayer1] = useState<string>("");
@@ -36,19 +38,25 @@ export default function NewMatchPage({
       .then((r) => r.json())
       .then(({ groupId, group }) => {
         setGroupId(groupId);
+        const grpSport = group?.sport ?? "TABLE_TENNIS";
+        setSport(grpSport);
+        const cfg = getSportConfig(grpSport);
+        setMatchType(cfg.defaultMatchType);
         return fetch(`/api/group/${groupCode}/players`);
       })
       .then((r) => r.json())
-      .then((data) => setPlayers(data.players || []));
+      .then((data) => setPlayers((data.players || []).filter((p: any) => !p.isArchived)));
   }, [groupCode]);
 
-  // Pre-select from generator
   useEffect(() => {
     const p1 = searchParams.get("p1");
     const p2 = searchParams.get("p2");
     if (p1) setPlayer1(p1);
     if (p2) setPlayer2(p2);
   }, [searchParams]);
+
+  const sportConfig = getSportConfig(sport);
+  const setLabel = sportConfig.scoring.setLabel;
 
   function addSet() {
     setSets([...sets, { score1: 0, score2: 0 }]);
@@ -93,14 +101,14 @@ export default function NewMatchPage({
     <div>
       <PageHeader title="Record Match" backHref={`/g/${groupCode}/matches`} />
       <form onSubmit={handleSubmit} className="space-y-6 max-w-lg">
-        <GlassTabs
-          tabs={[
-            { id: "SINGLES", label: "Singles", icon: "🏓" },
-            { id: "DOUBLES", label: "Doubles", icon: "👥" },
-          ]}
-          activeTab={matchType}
-          onChange={(t) => setMatchType(t as "SINGLES" | "DOUBLES")}
-        />
+
+        {sportConfig.allowedMatchTypes.length > 1 && (
+          <GlassTabs
+            tabs={sportConfig.allowedMatchTypes.map((t) => ({ id: t.id, label: t.label, icon: t.icon }))}
+            activeTab={matchType}
+            onChange={(t) => setMatchType(t)}
+          />
+        )}
 
         {matchType === "SINGLES" ? (
           <GlassCard>
@@ -127,7 +135,13 @@ export default function NewMatchPage({
                               : "glass glass-hover text-white/70"
                           }`}
                         >
-                          <PlayerAvatar name={p.name} avatarColor={p.avatarColor} size="xs" />
+                          <PlayerAvatar
+                            name={p.name}
+                            avatarColor={p.avatarColor}
+                            emoji={(p as any).emoji}
+                            imageUrl={(p as any).imageUrl}
+                            size="xs"
+                          />
                           <span className="truncate">{p.name}</span>
                         </button>
                       );
@@ -177,7 +191,13 @@ export default function NewMatchPage({
                                   : "glass glass-hover text-white/70"
                               }`}
                             >
-                              <PlayerAvatar name={p.name} avatarColor={p.avatarColor} size="xs" />
+                              <PlayerAvatar
+                                name={p.name}
+                                avatarColor={p.avatarColor}
+                                emoji={(p as any).emoji}
+                                imageUrl={(p as any).imageUrl}
+                                size="xs"
+                              />
                               <span className="truncate">{p.name}</span>
                             </button>
                           );
@@ -191,13 +211,15 @@ export default function NewMatchPage({
           </GlassCard>
         )}
 
-        {/* Set Scores */}
+        {/* Set/Game Scores */}
         <GlassCard>
-          <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wide mb-4">Set Scores</h3>
+          <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wide mb-4">
+            {setLabel} Scores
+          </h3>
           <div className="space-y-3">
             {sets.map((set, i) => (
               <div key={i} className="flex items-center gap-3">
-                <span className="text-xs text-white/30 w-12">Set {i + 1}</span>
+                <span className="text-xs text-white/30 w-16">{setLabel} {i + 1}</span>
                 <input
                   type="number"
                   min="0"
@@ -237,7 +259,7 @@ export default function NewMatchPage({
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Add Set
+            Add {setLabel}
           </button>
         </GlassCard>
 

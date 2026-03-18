@@ -16,7 +16,12 @@ export default async function GroupLayout({
 
   return (
     <div className="min-h-screen flex">
-      <GroupTracker groupCode={group.code} groupName={group.name} />
+      <GroupTracker
+        groupCode={group.code}
+        groupName={group.name}
+        sport={(group as any).sport ?? "TABLE_TENNIS"}
+        clubName={(group as any).clubName}
+      />
       <GroupNav group={group} />
       <main className="flex-1 md:ml-60 min-h-screen">
         <div className="max-w-4xl mx-auto px-4 py-8 pb-24 md:pb-8">

@@ -68,3 +68,20 @@ export async function deleteTournament(tournamentId: string) {
   await prisma.tournament.delete({ where: { id: tournamentId } });
   revalidatePath(`/g`);
 }
+
+export async function archiveTournament(tournamentId: string, groupCode: string) {
+  await prisma.tournament.update({
+    where: { id: tournamentId },
+    data: { isArchived: true },
+  });
+  revalidatePath(`/g/${groupCode}/tournaments`);
+}
+
+export async function deleteTournamentIfEmpty(tournamentId: string, groupCode: string) {
+  const hasResults = await prisma.match.count({
+    where: { tournamentId, status: "COMPLETED" },
+  });
+  if (hasResults > 0) throw new Error("Cannot delete tournament with results. Use archive instead.");
+  await prisma.tournament.delete({ where: { id: tournamentId } });
+  revalidatePath(`/g/${groupCode}/tournaments`);
+}

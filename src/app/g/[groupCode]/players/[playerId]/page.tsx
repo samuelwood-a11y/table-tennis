@@ -7,8 +7,10 @@ import { GlassBadge } from "@/components/ui/GlassBadge";
 import { StatCard } from "@/components/stats/StatCard";
 import { MatchCard } from "@/components/matches/MatchCard";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
+import { DeletePlayerButton } from "@/components/players/DeletePlayerButton";
 import { computePlayerStats, computeHeadToHead } from "@/lib/stats";
 import { formatDate } from "@/lib/utils";
+import Link from "next/link";
 
 export default async function PlayerProfilePage({
   params,
@@ -57,40 +59,72 @@ export default async function PlayerProfilePage({
 
       {/* Profile Hero */}
       <GlassCard>
-        <div className="flex items-center gap-5">
-          <PlayerAvatar name={player.name} avatarColor={player.avatarColor} size="xl" />
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-white">{player.name}</h1>
-            <p className="text-white/40 text-sm mt-0.5">Member since {formatDate(player.createdAt)}</p>
-            <div className="flex gap-2 mt-3">
-              {stats.form.map((result, i) => (
-                <span
-                  key={i}
-                  className={`w-7 h-7 rounded-full text-xs flex items-center justify-center font-bold ${
-                    result === "W"
-                      ? "bg-emerald-500/30 text-emerald-300"
-                      : "bg-red-500/30 text-red-300"
-                  }`}
-                >
-                  {result}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-5 flex-1 min-w-0">
+            <PlayerAvatar
+              name={player.name}
+              avatarColor={player.avatarColor}
+              emoji={(player as any).emoji}
+              imageUrl={(player as any).imageUrl}
+              size="xl"
+            />
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-bold text-white">{player.name}</h1>
+              {(player as any).nickname && (
+                <p className="text-white/40 text-sm">"{(player as any).nickname}"</p>
+              )}
+              <p className="text-white/40 text-sm mt-0.5">Member since {formatDate(player.createdAt)}</p>
+              {player.isArchived && (
+                <span className="inline-flex items-center gap-1 mt-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                  Archived
                 </span>
-              ))}
+              )}
+              <div className="flex gap-2 mt-3">
+                {stats.form.map((result, i) => (
+                  <span
+                    key={i}
+                    className={`w-7 h-7 rounded-full text-xs flex items-center justify-center font-bold ${
+                      result === "W"
+                        ? "bg-emerald-500/30 text-emerald-300"
+                        : "bg-red-500/30 text-red-300"
+                    }`}
+                  >
+                    {result}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
-          {stats.streak !== 0 && (
-            <GlassBadge variant={stats.streak > 0 ? "success" : "danger"} className="text-sm px-3 py-1">
-              {stats.streak > 0 ? `🔥 ${stats.streak} Win Streak` : `❄️ ${Math.abs(stats.streak)} Loss Streak`}
-            </GlassBadge>
-          )}
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            {stats.streak !== 0 && (
+              <GlassBadge variant={stats.streak > 0 ? "success" : "danger"} className="text-sm px-3 py-1">
+                {stats.streak > 0 ? `🔥 ${stats.streak}` : `❄️ ${Math.abs(stats.streak)}`}
+              </GlassBadge>
+            )}
+            <Link
+              href={`/g/${groupCode}/players/${playerId}/edit`}
+              className="text-xs text-violet-400 hover:text-violet-300 transition-colors px-3 py-1.5 rounded-lg glass glass-hover"
+            >
+              Edit
+            </Link>
+          </div>
         </div>
       </GlassCard>
+
+      {/* Notes */}
+      {(player as any).notes && (
+        <GlassCard>
+          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-2">Notes</h2>
+          <p className="text-white/70 text-sm">{(player as any).notes}</p>
+        </GlassCard>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Played" value={stats.played} icon="🏓" />
         <StatCard label="Won" value={stats.won} icon="✅" color="text-emerald-400" />
         <StatCard label="Win Rate" value={`${stats.winRate}%`} icon="📈" color="text-violet-400" />
-        <StatCard label="Sets Won" value={stats.setsWon} icon="🎯" color="text-blue-400" />
+        <StatCard label="Games Won" value={stats.setsWon} icon="🎯" color="text-blue-400" />
       </div>
 
       {/* Head to Head */}
@@ -105,7 +139,13 @@ export default async function PlayerProfilePage({
               const winPct = total > 0 ? Math.round((record.wins / total) * 100) : 0;
               return (
                 <div key={opp.id} className="flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-0">
-                  <PlayerAvatar name={opp.name} avatarColor={opp.avatarColor} size="sm" />
+                  <PlayerAvatar
+                    name={opp.name}
+                    avatarColor={opp.avatarColor}
+                    emoji={(opp as any).emoji}
+                    imageUrl={(opp as any).imageUrl}
+                    size="sm"
+                  />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-white">{opp.name}</p>
                     <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -142,6 +182,12 @@ export default async function PlayerProfilePage({
           </div>
         )}
       </div>
+
+      {/* Danger zone */}
+      <GlassCard className="border border-red-400/10">
+        <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-3">Danger Zone</h2>
+        <DeletePlayerButton playerId={playerId} playerName={player.name} groupCode={groupCode} />
+      </GlassCard>
     </div>
   );
 }

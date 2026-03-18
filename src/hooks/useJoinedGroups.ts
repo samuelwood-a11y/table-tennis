@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 export type JoinedGroup = {
   code: string;
   name: string;
-  lastAccessed: number; // timestamp
+  sport: string;
+  clubName?: string;
+  lastAccessed: number;
 };
 
 const STORAGE_KEY = "tt_joined_groups";
@@ -20,23 +22,13 @@ export function useJoinedGroups() {
     } catch {}
   }, []);
 
-  function addGroup(code: string, name: string) {
+  function addGroup(code: string, name: string, sport = "TABLE_TENNIS", clubName?: string) {
     setGroups((prev) => {
       const filtered = prev.filter((g) => g.code !== code);
-      const updated = [{ code, name, lastAccessed: Date.now() }, ...filtered].slice(0, 10);
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); } catch {}
-      return updated;
-    });
-  }
-
-  function touchGroup(code: string) {
-    setGroups((prev) => {
-      const group = prev.find((g) => g.code === code);
-      if (!group) return prev;
       const updated = [
-        { ...group, lastAccessed: Date.now() },
-        ...prev.filter((g) => g.code !== code),
-      ];
+        { code, name, sport, clubName, lastAccessed: Date.now() },
+        ...filtered,
+      ].slice(0, 10);
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); } catch {}
       return updated;
     });
@@ -50,5 +42,5 @@ export function useJoinedGroups() {
     });
   }
 
-  return { groups, addGroup, touchGroup, removeGroup };
+  return { groups, addGroup, removeGroup };
 }
