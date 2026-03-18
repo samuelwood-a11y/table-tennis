@@ -4,6 +4,7 @@ import { getInitials } from "@/lib/group";
 interface PlayerAvatarProps {
   name: string;
   avatarColor: string;
+  emoji?: string | null;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
 }
@@ -11,12 +12,12 @@ interface PlayerAvatarProps {
 const sizeMap = {
   xs: "w-6 h-6 text-xs",
   sm: "w-8 h-8 text-sm",
-  md: "w-10 h-10 text-sm",
-  lg: "w-14 h-14 text-base",
-  xl: "w-20 h-20 text-xl",
+  md: "w-10 h-10 text-base",
+  lg: "w-14 h-14 text-xl",
+  xl: "w-20 h-20 text-3xl",
 };
 
-export function PlayerAvatar({ name, avatarColor, size = "md", className }: PlayerAvatarProps) {
+export function PlayerAvatar({ name, avatarColor, emoji, size = "md", className }: PlayerAvatarProps) {
   return (
     <div
       className={cn(
@@ -26,7 +27,7 @@ export function PlayerAvatar({ name, avatarColor, size = "md", className }: Play
       )}
       style={{ backgroundColor: avatarColor }}
     >
-      {getInitials(name)}
+      {emoji ?? getInitials(name)}
     </div>
   );
 }

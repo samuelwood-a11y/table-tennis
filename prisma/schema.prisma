@@ -11,12 +11,16 @@ model Group {
   name        String
   code        String   @unique
   createdAt   DateTime @default(now())
+  adminEmail            String?
+  previousCode          String?
+  previousCodeExpiresAt DateTime?
 
-  players      Player[]
-  matches      Match[]
-  leagues      League[]
-  tournaments  Tournament[]
-  doublesTeams DoublesTeam[]
+  players        Player[]
+  matches        Match[]
+  leagues        League[]
+  tournaments    Tournament[]
+  doublesTeams   DoublesTeam[]
+  recoveryTokens RecoveryToken[]
 }
 
 model Player {
@@ -24,14 +28,17 @@ model Player {
   groupId     String
   name        String
   avatarColor String   @default("#6366f1")
+  emoji       String?
   createdAt   DateTime @default(now())
 
   group             Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
   singlesMatchesP1  Match[]             @relation("Player1")
   singlesMatchesP2  Match[]             @relation("Player2")
+  refereedMatches   Match[]             @relation("MatchReferee")
   doublesTeams      DoublesTeamPlayer[]
   leagueEntries     LeaguePlayer[]
   tournamentEntries TournamentEntry[]
+  payments          PlayerPayment[]
 }
 
 model DoublesTeam {
@@ -65,10 +72,12 @@ model Match {
   tournamentId    String?
   bracketRound    Int?
   bracketPosition Int?
+  refereeId       String?
 
   group      Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
   league     League?     @relation(fields: [leagueId], references: [id])
   tournament Tournament? @relation(fields: [tournamentId], references: [id])
+  referee    Player?     @relation("MatchReferee", fields: [refereeId], references: [id])
 
   player1Id String?
   player2Id String?
@@ -94,15 +103,21 @@ model Set {
 }
 
 model League {
-  id        String   @id @default(cuid())
-  groupId   String
-  name      String
-  status    String   @default("ACTIVE")
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  groupId     String
+  name        String
+  status      String   @default("ACTIVE")
+  format      String   @default("SINGLES")
+  entryFee    Float?
+  currency    String   @default("GBP")
+  expectedPot Float?
+  createdAt   DateTime @default(now())
 
-  group   Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  players LeaguePlayer[]
-  matches Match[]
+  group      Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  players    LeaguePlayer[]
+  matches    Match[]
+  prizeRows  PrizePayoutRow[]
+  payments   PlayerPayment[]
 }
 
 model LeaguePlayer {
@@ -117,16 +132,22 @@ model LeaguePlayer {
 }
 
 model Tournament {
-  id        String   @id @default(cuid())
-  groupId   String
-  name      String
-  type      String   @default("SINGLES")
-  status    String   @default("ACTIVE")
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  groupId     String
+  name        String
+  type        String   @default("SINGLES")
+  format      String   @default("SINGLES")
+  status      String   @default("ACTIVE")
+  entryFee    Float?
+  currency    String   @default("GBP")
+  expectedPot Float?
+  createdAt   DateTime @default(now())
 
-  group   Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  entries TournamentEntry[]
-  matches Match[]
+  group    Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  entries  TournamentEntry[]
+  matches  Match[]
+  prizeRows PrizePayoutRow[]
+  payments  PlayerPayment[]
 }
 
 model TournamentEntry {
@@ -139,4 +160,45 @@ model TournamentEntry {
   player     Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, playerId])
+}
+
+model RecoveryToken {
+  id        String   @id @default(cuid())
+  groupId   String
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+model PlayerPayment {
+  id           String    @id @default(cuid())
+  playerId     String
+  leagueId     String?
+  tournamentId String?
+  status       String    @default("UNPAID")
+  amountDue    Float     @default(0)
+  amountPaid   Float     @default(0)
+  paidAt       DateTime?
+  notes        String?
+
+  player     Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  league     League?     @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
+
+model PrizePayoutRow {
+  id           String  @id @default(cuid())
+  leagueId     String?
+  tournamentId String?
+  position     Int
+  label        String
+  amount       Float?
+  percentage   Float?
+
+  league     League?     @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 }

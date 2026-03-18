@@ -17,6 +17,7 @@ const navItems = [
   { href: "/tournaments", icon: "🏆", label: "Tournaments" },
   { href: "/generator", icon: "🎲", label: "Generator" },
   { href: "/stats", icon: "📈", label: "Stats" },
+  { href: "/settings", icon: "⚙️", label: "Settings" },
 ];
 
 export function GroupNav({ group }: GroupNavProps) {

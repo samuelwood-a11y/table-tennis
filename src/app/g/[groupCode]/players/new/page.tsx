@@ -7,8 +7,8 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassInput } from "@/components/ui/GlassInput";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
+import { EmojiPicker } from "@/components/players/EmojiPicker";
 import { AVATAR_COLORS } from "@/lib/group";
-import { createPlayer } from "@/actions/players";
 
 export default function NewPlayerPage({
   params,
@@ -19,6 +19,7 @@ export default function NewPlayerPage({
   const router = useRouter();
   const [name, setName] = useState("");
   const [color, setColor] = useState(AVATAR_COLORS[0]);
+  const [emoji, setEmoji] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -26,10 +27,13 @@ export default function NewPlayerPage({
     if (!name.trim()) return;
     setLoading(true);
     try {
-      // We need groupId — fetch it
-      const res = await fetch(`/api/group/${groupCode}`);
-      const { groupId } = await res.json();
-      await createPlayer(groupId, name, color);
+      const groupRes = await fetch(`/api/group/${groupCode}`);
+      const { groupId } = await groupRes.json();
+      await fetch("/api/players/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId, name: name.trim(), avatarColor: color, emoji }),
+      });
       router.push(`/g/${groupCode}/players`);
     } catch (err) {
       console.error(err);
@@ -39,15 +43,11 @@ export default function NewPlayerPage({
 
   return (
     <div>
-      <PageHeader
-        title="Add Player"
-        backHref={`/g/${groupCode}/players`}
-      />
+      <PageHeader title="Add Player" backHref={`/g/${groupCode}/players`} />
       <GlassCard className="max-w-md">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Preview */}
           <div className="flex items-center gap-4">
-            <PlayerAvatar name={name || "?"} avatarColor={color} size="lg" />
+            <PlayerAvatar name={name || "?"} avatarColor={color} emoji={emoji} size="lg" />
             <div>
               <p className="text-white font-medium">{name || "Player Name"}</p>
               <p className="text-white/40 text-sm">Preview</p>
@@ -62,6 +62,11 @@ export default function NewPlayerPage({
             required
             autoFocus
           />
+
+          <div>
+            <label className="text-sm font-medium text-white/70 block mb-2">Player Icon</label>
+            <EmojiPicker selected={emoji} onSelect={setEmoji} />
+          </div>
 
           <div>
             <label className="text-sm font-medium text-white/70 block mb-2">Avatar Color</label>
