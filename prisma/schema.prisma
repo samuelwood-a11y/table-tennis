@@ -19,6 +19,7 @@ model Group {
   previousCodeExpiresAt DateTime?
 
   players        Player[]
+  teams          Team[]
   matches        Match[]
   leagues        League[]
   tournaments    Tournament[]
@@ -44,9 +45,41 @@ model Player {
   singlesMatchesP2  Match[]             @relation("Player2")
   refereedMatches   Match[]             @relation("MatchReferee")
   doublesTeams      DoublesTeamPlayer[]
+  teamMemberships   TeamPlayer[]
   leagueEntries     LeaguePlayer[]
   tournamentEntries TournamentEntry[]
   payments          PlayerPayment[]
+}
+
+model Team {
+  id             String    @id @default(cuid())
+  groupId        String
+  name           String
+  primaryColor   String    @default("#6366f1")
+  secondaryColor String?
+  imageUrl       String?
+  isArchived     Boolean   @default(false)
+  archivedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  group              Group                  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  players            TeamPlayer[]
+  leagueEntries      LeagueTeam[]
+  tournamentEntries  TournamentTeamEntry[]
+  matchesAsHome      Match[]                @relation("MatchHomeTeam")
+  matchesAsAway      Match[]                @relation("MatchAwayTeam")
+}
+
+model TeamPlayer {
+  teamId    String
+  playerId  String
+  isCaptain Boolean @default(false)
+  position  String?
+
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, playerId])
 }
 
 model DoublesTeam {
@@ -71,11 +104,13 @@ model DoublesTeamPlayer {
 }
 
 model Match {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   groupId         String
-  type            String   @default("SINGLES")
-  status          String   @default("PENDING")
-  playedAt        DateTime @default(now())
+  type            String    @default("SINGLES")
+  status          String    @default("PENDING")
+  playedAt        DateTime  @default(now())
+  scheduledAt     DateTime?
+  venue           String?
   leagueId        String?
   tournamentId    String?
   bracketRound    Int?
@@ -97,6 +132,11 @@ model Match {
   team1   DoublesTeam? @relation("Team1", fields: [team1Id], references: [id])
   team2   DoublesTeam? @relation("Team2", fields: [team2Id], references: [id])
 
+  homeTeamId String?
+  awayTeamId String?
+  homeTeam   Team? @relation("MatchHomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam   Team? @relation("MatchAwayTeam", fields: [awayTeamId], references: [id])
+
   sets Set[]
 }
 
@@ -111,19 +151,22 @@ model Set {
 }
 
 model League {
-  id          String   @id @default(cuid())
-  groupId     String
-  name        String
-  status      String   @default("ACTIVE")
-  format      String   @default("SINGLES")
-  entryFee    Float?
-  currency    String   @default("GBP")
-  expectedPot Float?
-  isArchived  Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  groupId      String
+  name         String
+  status       String   @default("ACTIVE")
+  format       String   @default("SINGLES")
+  entryFee     Float?
+  currency     String   @default("GBP")
+  expectedPot  Float?
+  isArchived   Boolean  @default(false)
+  pointsConfig String?
+  teamSize     Int?
+  createdAt    DateTime @default(now())
 
   group      Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
   players    LeaguePlayer[]
+  teams      LeagueTeam[]
   matches    Match[]
   prizeRows  PrizePayoutRow[]
   payments   PlayerPayment[]
@@ -140,6 +183,17 @@ model LeaguePlayer {
   @@unique([leagueId, playerId])
 }
 
+model LeagueTeam {
+  id       String @id @default(cuid())
+  leagueId String
+  teamId   String
+
+  league League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([leagueId, teamId])
+}
+
 model Tournament {
   id          String   @id @default(cuid())
   groupId     String
@@ -151,10 +205,12 @@ model Tournament {
   currency    String   @default("GBP")
   expectedPot Float?
   isArchived  Boolean  @default(false)
+  teamSize    Int?
   createdAt   DateTime @default(now())
 
-  group    Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group    Group                @relation(fields: [groupId], references: [id], onDelete: Cascade)
   entries  TournamentEntry[]
+  teamEntries TournamentTeamEntry[]
   matches  Match[]
   prizeRows PrizePayoutRow[]
   payments  PlayerPayment[]
@@ -170,6 +226,18 @@ model TournamentEntry {
   player     Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, playerId])
+}
+
+model TournamentTeamEntry {
+  id           String @id @default(cuid())
+  tournamentId String
+  teamId       String
+  seed         Int?
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, teamId])
 }
 
 model RecoveryToken {

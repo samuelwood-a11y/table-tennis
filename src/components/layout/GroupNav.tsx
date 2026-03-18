@@ -22,12 +22,15 @@ interface NavItem {
 
 export function GroupNav({ group }: { group: Group }) {
   const pathname = usePathname();
-  const sport = group.sport ?? "TABLE_TENNIS";
+  const sport = (group.sport as string) ?? "TABLE_TENNIS";
   const sportConfig = getSportConfig(sport);
   const base = `/g/${group.code}`;
 
   const navItems: NavItem[] = [
     { href: base, icon: "🏠", label: "Home" },
+    ...(sportConfig.isTeamSport
+      ? [{ href: `${base}/teams`, icon: "👥", label: "Teams" }]
+      : []),
     { href: `${base}/players`, icon: "👤", label: "Players" },
     { href: `${base}/matches`, icon: sportConfig.matchIcon, label: "Matches" },
     { href: `${base}/leagues`, icon: "📊", label: "Leagues" },
@@ -48,7 +51,7 @@ export function GroupNav({ group }: { group: Group }) {
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 glass border-r border-white/10 z-40">
         <div className="p-5 border-b border-white/10">
           <Link href="/" className="block">
-            <p className="text-xs text-white/40 mb-0.5">Racket Sports Manager</p>
+            <p className="text-xs text-white/40 mb-0.5">MatchHub</p>
             <h2 className="font-bold text-white text-lg leading-tight truncate">{group.name}</h2>
           </Link>
           <div className="mt-2">
@@ -73,10 +76,7 @@ export function GroupNav({ group }: { group: Group }) {
           ))}
         </nav>
         <div className="p-4 border-t border-white/10">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors"
-          >
+          <Link href="/" className="flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors">
             <span>←</span>
             <span>Switch Group</span>
           </Link>
@@ -85,7 +85,7 @@ export function GroupNav({ group }: { group: Group }) {
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/10">
-        <div className="flex items-center justify-around px-2 py-2 safe-bottom">
+        <div className="flex items-center justify-around px-2 py-2">
           {navItems.slice(0, 6).map((item) => (
             <Link key={item.href} href={item.href}>
               <div

@@ -100,9 +100,9 @@ export default function HomePage() {
       <div className="w-full max-w-md space-y-5">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="text-6xl mb-3">🎾</div>
-          <h1 className="text-4xl font-bold gradient-text">Racket Sports</h1>
-          <p className="text-white/40 mt-1.5 text-sm">Tournament & League Manager</p>
+          <div className="text-6xl mb-3">🏆</div>
+          <h1 className="text-4xl font-bold gradient-text">MatchHub</h1>
+          <p className="text-white/40 mt-1.5 text-sm">Group Sport Competition Manager</p>
         </div>
 
         {/* Your Groups */}
@@ -112,7 +112,6 @@ export default function HomePage() {
               Your Groups
             </h2>
 
-            {/* Club groups */}
             {Object.entries(clubGroups).map(([club, clubGroupList]) => (
               <div key={club} className="mb-4">
                 <p className="text-xs text-white/30 font-medium mb-2 px-1">{club}</p>
@@ -122,7 +121,6 @@ export default function HomePage() {
               </div>
             ))}
 
-            {/* Standalone groups */}
             {ungrouped.length > 0 && (
               <div className="space-y-2">
                 {ungrouped.map(renderGroupCard)}
@@ -142,23 +140,23 @@ export default function HomePage() {
               onChange={(e) => setCreateName(e.target.value)}
             />
 
-            {/* Sport selector */}
+            {/* Sport selector — 4 cols for 7 sports */}
             <div>
               <p className="text-xs text-white/50 mb-2 font-medium">Sport</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {SPORTS_LIST.map((s) => (
                   <button
                     key={s.id}
                     type="button"
                     onClick={() => setCreateSport(s.id)}
-                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all text-sm font-medium ${
+                    className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border transition-all text-xs font-medium ${
                       createSport === s.id
                         ? "bg-white/20 border-white/40 text-white"
                         : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70"
                     }`}
                   >
-                    <span className="text-2xl">{s.emoji}</span>
-                    <span className="text-xs leading-tight text-center">{s.name}</span>
+                    <span className="text-xl">{s.emoji}</span>
+                    <span className="leading-tight text-center text-[10px]">{s.name.split(" ")[0]}</span>
                   </button>
                 ))}
               </div>
@@ -183,7 +181,7 @@ export default function HomePage() {
                     onChange={(e) => setClubName(e.target.value)}
                   />
                   <p className="text-xs text-white/30 mt-1">
-                    Groups with the same club name are shown together on the home screen.
+                    Groups with the same club name are shown together.
                   </p>
                 </div>
               )}

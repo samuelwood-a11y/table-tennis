@@ -2,11 +2,11 @@
 
 import { useState, use, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassInput } from "@/components/ui/GlassInput";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { EmojiPicker } from "@/components/players/EmojiPicker";
 import { updatePlayer } from "@/actions/players";
 import type { Player } from "@prisma/client";
@@ -33,31 +33,34 @@ export default function EditPlayerPage({
   const [emoji, setEmoji] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetch(`/api/group/${groupCode}`)
-      .then((r) => r.json())
-      .then(({ groupId }) => {
-        return fetch(`/api/group/${groupCode}/players`);
-      })
+    fetch(`/api/group/${groupCode}/players`)
       .then((r) => r.json())
       .then(({ players }) => {
-        const p = players?.find((p: Player) => p.id === playerId);
+        const p = players?.find((p: any) => p.id === playerId);
         if (p) {
           setPlayer(p);
-          setName(p.name);
-          setNickname((p as any).nickname ?? "");
-          setNotes((p as any).notes ?? "");
-          setAvatarColor(p.avatarColor);
-          setEmoji((p as any).emoji ?? null);
-          setImageUrl((p as any).imageUrl ?? null);
+          setName(p.name ?? "");
+          setNickname(p.nickname ?? "");
+          setNotes(p.notes ?? "");
+          setAvatarColor(p.avatarColor ?? "#6366f1");
+          setEmoji(p.emoji ?? null);
+          setImageUrl(p.imageUrl ?? null);
         }
       });
   }, [groupCode, playerId]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
+  function validate() {
+    const errs: Record<string, string> = {};
+    if (!name.trim()) errs.name = "Name is required";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  async function handleSave() {
+    if (!validate()) return;
     setLoading(true);
     try {
       await updatePlayer(playerId, {
@@ -70,86 +73,134 @@ export default function EditPlayerPage({
       });
       router.push(`/g/${groupCode}/players/${playerId}`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error");
+      alert(err instanceof Error ? err.message : "Error saving");
       setLoading(false);
     }
   }
 
   if (!player) {
     return (
-      <div>
-        <PageHeader title="Edit Player" backHref={`/g/${groupCode}/players/${playerId}`} />
-        <div className="text-white/40 text-sm mt-8">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-white/40">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div>
-      <PageHeader title="Edit Player" backHref={`/g/${groupCode}/players/${playerId}`} />
-      <form onSubmit={handleSubmit} className="space-y-5 max-w-lg mt-6">
+    <div className="min-h-screen pb-28">
+      {/* Header */}
+      <div className="sticky top-0 z-30 glass border-b border-white/10 px-4 py-3 flex items-center gap-3 md:static md:border-none md:bg-transparent md:mb-6">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-white/60 hover:text-white transition-colors p-1 -ml-1"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h1 className="text-lg font-bold text-white flex-1">Edit Player</h1>
+      </div>
 
-        {/* Photo upload */}
+      <div className="px-4 space-y-4 max-w-lg mx-auto">
+
+        {/* Photo hero */}
         <GlassCard>
-          <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wide mb-4">Photo</h3>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col items-center py-4 gap-4">
+            <div className="relative">
+              <PlayerAvatar
+                name={name || player.name}
+                avatarColor={avatarColor}
+                emoji={!imageUrl ? emoji : undefined}
+                imageUrl={imageUrl}
+                size="xl"
+              />
+            </div>
             <ImageUpload
               currentUrl={imageUrl}
-              onUpload={(url) => setImageUrl(url)}
+              onUpload={(url) => { setImageUrl(url); setEmoji(null); }}
               onRemove={() => setImageUrl(null)}
               shape="circle"
-              size="lg"
+              size="sm"
+              placeholder="📷"
             />
-            {!imageUrl && (
-              <div className="flex-1">
-                <p className="text-xs text-white/40 mb-3">Or choose an emoji avatar:</p>
-                <EmojiPicker selected={emoji} onSelect={setEmoji} />
-              </div>
-            )}
           </div>
         </GlassCard>
 
-        {/* Basic info */}
+        {/* Emoji (only if no photo) */}
+        {!imageUrl && (
+          <GlassCard>
+            <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-3">
+              Emoji Avatar
+            </h3>
+            <EmojiPicker selected={emoji} onSelect={setEmoji} />
+          </GlassCard>
+        )}
+
+        {/* Name */}
         <GlassCard>
-          <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wide mb-4">Info</h3>
-          <div className="space-y-3">
-            <GlassInput
-              label="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-            <GlassInput
-              label="Nickname (optional)"
-              placeholder="e.g. The Hammer, Lefty..."
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-            />
+          <div className="space-y-4">
             <div>
-              <label className="text-xs text-white/50 block mb-1.5">Notes (optional)</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Playing style, strengths, weaknesses..."
-                rows={3}
-                className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-violet-400/60 resize-none"
+              <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-2">
+                Name *
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: "" })); }}
+                placeholder="Player name"
+                className="w-full h-12 px-4 rounded-xl bg-white/10 border border-white/20 text-white text-base placeholder:text-white/30 focus:outline-none focus:border-violet-400/60 focus:bg-white/15 transition-all"
+              />
+              {errors.name && (
+                <p className="text-red-400 text-xs mt-1.5">{errors.name}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-2">
+                Nickname
+              </label>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="e.g. The Hammer, Lefty..."
+                className="w-full h-12 px-4 rounded-xl bg-white/10 border border-white/20 text-white text-base placeholder:text-white/30 focus:outline-none focus:border-violet-400/60 focus:bg-white/15 transition-all"
               />
             </div>
           </div>
         </GlassCard>
 
-        {/* Avatar color */}
+        {/* Notes */}
+        <GlassCard>
+          <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-2">
+            Notes
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Playing style, strengths, weaknesses..."
+            rows={4}
+            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-base placeholder:text-white/30 focus:outline-none focus:border-violet-400/60 focus:bg-white/15 transition-all resize-none"
+          />
+        </GlassCard>
+
+        {/* Avatar colour (only if no photo) */}
         {!imageUrl && (
           <GlassCard>
-            <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wide mb-4">Avatar Colour</h3>
-            <div className="flex gap-2 flex-wrap">
+            <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">
+              Avatar Colour
+            </h3>
+            <div className="flex gap-3 flex-wrap">
               {AVATAR_COLORS.map((color) => (
                 <button
                   key={color}
                   type="button"
                   onClick={() => setAvatarColor(color)}
-                  className={`w-8 h-8 rounded-full transition-all ${
-                    avatarColor === color ? "ring-2 ring-white ring-offset-2 ring-offset-transparent scale-110" : ""
+                  className={`w-10 h-10 rounded-full transition-all ${
+                    avatarColor === color
+                      ? "ring-2 ring-white ring-offset-2 ring-offset-black/20 scale-110"
+                      : "hover:scale-105"
                   }`}
                   style={{ backgroundColor: color }}
                 />
@@ -157,11 +208,28 @@ export default function EditPlayerPage({
             </div>
           </GlassCard>
         )}
+      </div>
 
-        <GlassButton type="submit" loading={loading} className="w-full" size="lg">
-          Save Changes
-        </GlassButton>
-      </form>
+      {/* Sticky bottom action bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-white/10 px-4 py-3 md:relative md:border-none md:bg-transparent md:px-0 md:pt-4 md:max-w-lg md:mx-auto">
+        <div className="flex gap-3 max-w-lg mx-auto">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex-1 h-12 rounded-xl glass text-white/60 hover:text-white transition-colors font-medium text-sm"
+          >
+            Cancel
+          </button>
+          <GlassButton
+            onClick={handleSave}
+            loading={loading}
+            className="flex-1 h-12"
+            size="lg"
+          >
+            Save Changes
+          </GlassButton>
+        </div>
+      </div>
     </div>
   );
 }
