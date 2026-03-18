@@ -1,0 +1,144 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  createdAt   DateTime @default(now())
+
+  players      Player[]
+  matches      Match[]
+  leagues      League[]
+  tournaments  Tournament[]
+  doublesTeams DoublesTeam[]
+}
+
+model Player {
+  id          String   @id @default(cuid())
+  groupId     String
+  name        String
+  avatarColor String   @default("#6366f1")
+  createdAt   DateTime @default(now())
+
+  group             Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  singlesMatchesP1  Match[]             @relation("Player1")
+  singlesMatchesP2  Match[]             @relation("Player2")
+  doublesTeams      DoublesTeamPlayer[]
+  leagueEntries     LeaguePlayer[]
+  tournamentEntries TournamentEntry[]
+}
+
+model DoublesTeam {
+  id      String @id @default(cuid())
+  groupId String
+
+  group   Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  players DoublesTeamPlayer[]
+
+  matchesAsTeam1 Match[] @relation("Team1")
+  matchesAsTeam2 Match[] @relation("Team2")
+}
+
+model DoublesTeamPlayer {
+  teamId   String
+  playerId String
+
+  team   DoublesTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  player Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, playerId])
+}
+
+model Match {
+  id              String   @id @default(cuid())
+  groupId         String
+  type            String   @default("SINGLES")
+  status          String   @default("PENDING")
+  playedAt        DateTime @default(now())
+  leagueId        String?
+  tournamentId    String?
+  bracketRound    Int?
+  bracketPosition Int?
+
+  group      Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  league     League?     @relation(fields: [leagueId], references: [id])
+  tournament Tournament? @relation(fields: [tournamentId], references: [id])
+
+  player1Id String?
+  player2Id String?
+  player1   Player? @relation("Player1", fields: [player1Id], references: [id])
+  player2   Player? @relation("Player2", fields: [player2Id], references: [id])
+
+  team1Id String?
+  team2Id String?
+  team1   DoublesTeam? @relation("Team1", fields: [team1Id], references: [id])
+  team2   DoublesTeam? @relation("Team2", fields: [team2Id], references: [id])
+
+  sets Set[]
+}
+
+model Set {
+  id        String @id @default(cuid())
+  matchId   String
+  setNumber Int
+  score1    Int    @default(0)
+  score2    Int    @default(0)
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+}
+
+model League {
+  id        String   @id @default(cuid())
+  groupId   String
+  name      String
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+
+  group   Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  players LeaguePlayer[]
+  matches Match[]
+}
+
+model LeaguePlayer {
+  id       String @id @default(cuid())
+  leagueId String
+  playerId String
+
+  league League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([leagueId, playerId])
+}
+
+model Tournament {
+  id        String   @id @default(cuid())
+  groupId   String
+  name      String
+  type      String   @default("SINGLES")
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+
+  group   Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  entries TournamentEntry[]
+  matches Match[]
+}
+
+model TournamentEntry {
+  id           String @id @default(cuid())
+  tournamentId String
+  playerId     String
+  seed         Int?
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player     Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, playerId])
+}
