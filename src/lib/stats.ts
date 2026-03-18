@@ -187,10 +187,10 @@ export function computeRotatingDoublesStandings(
       if (winner === 1) {
         stats[pid].won++;
         stats[pid].leaguePoints += 2;
-        stats[pid].form = [...stats[pid].form, "W"].slice(-5);
+        stats[pid].form = ([...stats[pid].form, "W"] as ("W" | "L")[]).slice(-5);
       } else {
         stats[pid].lost++;
-        stats[pid].form = [...stats[pid].form, "L"].slice(-5);
+        stats[pid].form = ([...stats[pid].form, "L"] as ("W" | "L")[]).slice(-5);
       }
     }
 
@@ -202,10 +202,10 @@ export function computeRotatingDoublesStandings(
       if (winner === 2) {
         stats[pid].won++;
         stats[pid].leaguePoints += 2;
-        stats[pid].form = [...stats[pid].form, "W"].slice(-5);
+        stats[pid].form = ([...stats[pid].form, "W"] as ("W" | "L")[]).slice(-5);
       } else {
         stats[pid].lost++;
-        stats[pid].form = [...stats[pid].form, "L"].slice(-5);
+        stats[pid].form = ([...stats[pid].form, "L"] as ("W" | "L")[]).slice(-5);
       }
     }
   }
