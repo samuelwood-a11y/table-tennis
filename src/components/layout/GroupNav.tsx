@@ -86,7 +86,13 @@ export function GroupNav({ group }: { group: Group }) {
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/10">
         <div className="flex items-center justify-around px-2 py-2">
-          {navItems.slice(0, 6).map((item) => (
+          <Link href="/">
+            <div className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all min-w-[44px] text-white/40 hover:text-white/70">
+              <span className="text-lg">←</span>
+              <span className="text-[10px] font-medium">All</span>
+            </div>
+          </Link>
+          {navItems.slice(0, 5).map((item) => (
             <Link key={item.href} href={item.href}>
               <div
                 className={cn(

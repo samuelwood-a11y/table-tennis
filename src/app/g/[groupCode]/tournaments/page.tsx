@@ -2,9 +2,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getGroupByCode } from "@/actions/groups";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { GlassBadge } from "@/components/ui/GlassBadge";
 import { GlassButton } from "@/components/ui/GlassButton";
+import { DeletableTournamentList } from "@/components/tournaments/DeletableTournamentList";
 import Link from "next/link";
 
 export default async function TournamentsPage({
@@ -21,6 +20,7 @@ export default async function TournamentsPage({
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { entries: true, matches: true } },
+      matches: { where: { status: "COMPLETED" }, select: { id: true } },
     },
   });
 
@@ -28,7 +28,7 @@ export default async function TournamentsPage({
     <div>
       <PageHeader
         title="Tournaments"
-        subtitle={`${tournaments.length} tournaments`}
+        subtitle={`${tournaments.length} tournament${tournaments.length !== 1 ? "s" : ""}`}
         action={
           <Link href={`/g/${groupCode}/tournaments/new`}>
             <GlassButton size="sm">+ New Tournament</GlassButton>
@@ -45,26 +45,7 @@ export default async function TournamentsPage({
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
-          {tournaments.map((t) => (
-            <Link key={t.id} href={`/g/${groupCode}/tournaments/${t.id}`}>
-              <GlassCard hover className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">🏆</span>
-                  <div>
-                    <p className="font-semibold text-white">{t.name}</p>
-                    <p className="text-xs text-white/40">
-                      {t._count.entries} players · {t._count.matches} matches
-                    </p>
-                  </div>
-                </div>
-                <GlassBadge variant={t.status === "ACTIVE" ? "success" : "default"}>
-                  {t.status}
-                </GlassBadge>
-              </GlassCard>
-            </Link>
-          ))}
-        </div>
+        <DeletableTournamentList initialTournaments={tournaments} groupCode={groupCode} />
       )}
     </div>
   );

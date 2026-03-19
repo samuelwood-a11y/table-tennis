@@ -2,9 +2,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getGroupByCode } from "@/actions/groups";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { GlassBadge } from "@/components/ui/GlassBadge";
 import { GlassButton } from "@/components/ui/GlassButton";
+import { DeletableLeagueList } from "@/components/leagues/DeletableLeagueList";
 import Link from "next/link";
 
 export default async function LeaguesPage({
@@ -21,6 +20,7 @@ export default async function LeaguesPage({
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { players: true, matches: true } },
+      matches: { where: { status: "COMPLETED" }, select: { id: true } },
     },
   });
 
@@ -28,7 +28,7 @@ export default async function LeaguesPage({
     <div>
       <PageHeader
         title="Leagues"
-        subtitle={`${leagues.length} leagues`}
+        subtitle={`${leagues.length} league${leagues.length !== 1 ? "s" : ""}`}
         action={
           <Link href={`/g/${groupCode}/leagues/new`}>
             <GlassButton size="sm">+ New League</GlassButton>
@@ -45,26 +45,7 @@ export default async function LeaguesPage({
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
-          {leagues.map((league) => (
-            <Link key={league.id} href={`/g/${groupCode}/leagues/${league.id}`}>
-              <GlassCard hover className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">📊</span>
-                  <div>
-                    <p className="font-semibold text-white">{league.name}</p>
-                    <p className="text-xs text-white/40">
-                      {league._count.players} players · {league._count.matches} fixtures
-                    </p>
-                  </div>
-                </div>
-                <GlassBadge variant={league.status === "ACTIVE" ? "success" : "default"}>
-                  {league.status}
-                </GlassBadge>
-              </GlassCard>
-            </Link>
-          ))}
-        </div>
+        <DeletableLeagueList initialLeagues={leagues} groupCode={groupCode} />
       )}
     </div>
   );

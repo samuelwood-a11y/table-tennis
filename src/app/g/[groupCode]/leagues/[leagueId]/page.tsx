@@ -5,12 +5,14 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassBadge } from "@/components/ui/GlassBadge";
 import { StandingsTable } from "@/components/leagues/StandingsTable";
+import { PairStandingsTable } from "@/components/leagues/PairStandingsTable";
 import { RotatingDoublesStandings } from "@/components/leagues/RotatingDoublesStandings";
 import { RotatingFixtureRow } from "@/components/leagues/RotatingFixtureRow";
 import { LeagueMatchRow } from "@/components/leagues/LeagueMatchRow";
 import { PaymentTracker } from "@/components/leagues/PaymentTracker";
 import { MatchCard } from "@/components/matches/MatchCard";
 import { computeLeagueStandings, computeRotatingDoublesStandings } from "@/lib/stats";
+import { computeDoublesPairStandings } from "@/lib/doubles-pairs";
 
 export default async function LeaguePage({
   params,
@@ -45,26 +47,56 @@ export default async function LeaguePage({
 
   const players = league.players.map((lp) => lp.player);
   const isRotating = league.format === "ROTATING_DOUBLES";
-
-  const standings = isRotating
-    ? computeRotatingDoublesStandings(players as any, league.matches as any)
-    : computeLeagueStandings(players, league.matches as any);
+  const isPairDoubles = league.format === "FIXED_DOUBLES" || league.format === "RANDOM_DOUBLES";
 
   const completed = league.matches.filter((m) => m.status === "COMPLETED");
   const pending = league.matches.filter((m) => m.status === "PENDING");
   const completedCount = completed.length;
   const totalCount = league.matches.length;
 
+  // Collect unique DoublesTeams from the pair-doubles league matches
+  const doublesTeamsMap = new Map<string, any>();
+  if (isPairDoubles) {
+    for (const m of league.matches) {
+      if (m.team1) doublesTeamsMap.set(m.team1.id, m.team1);
+      if (m.team2) doublesTeamsMap.set(m.team2.id, m.team2);
+    }
+  }
+
+  const pairStandings = isPairDoubles
+    ? computeDoublesPairStandings(
+        Array.from(doublesTeamsMap.values()),
+        league.matches as any
+      )
+    : null;
+
+  const standings =
+    isPairDoubles
+      ? null
+      : isRotating
+      ? computeRotatingDoublesStandings(players as any, league.matches as any)
+      : computeLeagueStandings(players, league.matches as any);
+
+  const formatLabel: Record<string, string> = {
+    FIXED_DOUBLES: "Fixed Pairs",
+    RANDOM_DOUBLES: "Random Pairs",
+    ROTATING_DOUBLES: "Rotating Pairs",
+    SINGLES: "Singles",
+    DOUBLES: "Doubles",
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between">
         <PageHeader
           title={league.name}
-          subtitle={`${players.length} players · ${completedCount}/${totalCount} played`}
+          subtitle={`${isPairDoubles ? `${doublesTeamsMap.size} pairs` : `${players.length} players`} · ${completedCount}/${totalCount} played`}
           backHref={`/g/${groupCode}/leagues`}
         />
         <div className="flex items-center gap-2 mt-1">
-          {isRotating && <GlassBadge variant="info">Rotating Doubles</GlassBadge>}
+          {(isRotating || isPairDoubles) && (
+            <GlassBadge variant="info">{formatLabel[league.format] ?? league.format}</GlassBadge>
+          )}
           <GlassBadge variant={league.status === "ACTIVE" ? "success" : "default"}>
             {league.status}
           </GlassBadge>
@@ -74,9 +106,11 @@ export default async function LeaguePage({
       {/* Standings */}
       <div>
         <h2 className="text-base font-semibold text-white mb-3">
-          {isRotating ? "Individual Standings" : "Standings"}
+          {isPairDoubles ? "Pair Standings" : isRotating ? "Individual Standings" : "Standings"}
         </h2>
-        {isRotating ? (
+        {isPairDoubles && pairStandings ? (
+          <PairStandingsTable standings={pairStandings} />
+        ) : isRotating ? (
           <RotatingDoublesStandings standings={standings as any} groupCode={groupCode} />
         ) : (
           <StandingsTable standings={standings as any} groupCode={groupCode} />

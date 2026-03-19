@@ -100,9 +100,12 @@ export const SPORT_CONFIGS: Record<Sport, SportConfig> = {
       { id: "DOUBLES", label: "Doubles", icon: "👥" },
       { id: "SINGLES", label: "Singles", icon: "🎾" },
     ],
-    defaultLeagueFormat: "DOUBLES",
+    defaultLeagueFormat: "FIXED_DOUBLES",
     allowedLeagueFormats: [
-      { id: "DOUBLES", label: "Doubles", icon: "👥" },
+      { id: "FIXED_DOUBLES", label: "Fixed Pairs", icon: "👥" },
+      { id: "RANDOM_DOUBLES", label: "Random Pairs", icon: "🔀" },
+      { id: "ROTATING_DOUBLES", label: "Rotating Pairs", icon: "🔄" },
+      { id: "SINGLES", label: "Singles", icon: "🎾" },
     ],
     defaultTournamentFormat: "DOUBLES",
     allowedTournamentFormats: [

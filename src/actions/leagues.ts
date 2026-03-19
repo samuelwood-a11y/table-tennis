@@ -18,6 +18,7 @@ export async function createLeague(
     expectedPot?: number;
     prizeRows?: PrizeRow[];
     cycles?: number;
+    pairs?: [string, string][]; // for FIXED_DOUBLES and RANDOM_DOUBLES
   }
 ) {
   if (playerIds.length < 2) throw new Error("Need at least 2 players");
@@ -80,6 +81,27 @@ export async function createLeague(
           },
         });
       }
+    } else if (format === "FIXED_DOUBLES" || format === "RANDOM_DOUBLES") {
+      const pairs = options?.pairs;
+      if (!pairs || pairs.length < 2) throw new Error("Need at least 2 pairs for a doubles league");
+
+      const doublesTeamIds: string[] = [];
+      for (const pair of pairs) {
+        const team = await findOrCreateDoublesTeam(groupId, pair, tx);
+        doublesTeamIds.push(team.id);
+      }
+
+      const fixtures = generateRoundRobin(doublesTeamIds.length);
+      await tx.match.createMany({
+        data: fixtures.map(([i, j]) => ({
+          groupId,
+          type: "DOUBLES",
+          status: "PENDING",
+          leagueId: l.id,
+          team1Id: doublesTeamIds[i],
+          team2Id: doublesTeamIds[j],
+        })),
+      });
     } else if (format === "SINGLES" || format === "DOUBLES") {
       const fixtures = generateRoundRobin(playerIds.length);
       await tx.match.createMany({
@@ -150,4 +172,16 @@ export async function deleteLeagueIfEmpty(leagueId: string, groupCode: string) {
   if (hasResults > 0) throw new Error("Cannot delete league with results. Use archive instead.");
   await prisma.league.delete({ where: { id: leagueId } });
   revalidatePath(`/g/${groupCode}/leagues`);
+}
+
+export async function removeLeague(leagueId: string, groupCode: string): Promise<{ action: "deleted" | "archived" }> {
+  const hasResults = await prisma.match.count({ where: { leagueId, status: "COMPLETED" } });
+  if (hasResults > 0) {
+    await prisma.league.update({ where: { id: leagueId }, data: { isArchived: true } });
+    revalidatePath(`/g/${groupCode}/leagues`);
+    return { action: "archived" };
+  }
+  await prisma.league.delete({ where: { id: leagueId } });
+  revalidatePath(`/g/${groupCode}/leagues`);
+  return { action: "deleted" };
 }
